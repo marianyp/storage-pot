@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": [
+    "${mod_authors}"
+  ],
+  "contact": {
+    "homepage": "${mod_page_url}",
+    "sources": "${mod_git_url}"
+  },
+  "license": "${mod_license}",
+  "icon": "assets/storagepot/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.mariany.storagepot.StoragePot"
+    ],
+    "client": [
+      "dev.mariany.storagepot.client.StoragePotClient"
+    ],
+    "fabric-datagen": [
+      "dev.mariany.storagepot.StoragePotDataGenerator"
+    ]
+  },
+  "mixins": [
+    "storagepot.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.14",
+    "minecraft": ">=1.21.6",
+    "java": ">=21",
+    "fabric-api": ">=0.128.2"
+  }
+}

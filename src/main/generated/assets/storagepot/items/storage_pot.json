@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "storagepot:item/storage_pot",
+    "model": {
+      "type": "storagepot:storage_pot"
+    }
+  }
+}

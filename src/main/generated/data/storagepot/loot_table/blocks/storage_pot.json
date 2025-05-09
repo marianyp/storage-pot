@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "functions": [
+            {
+              "function": "minecraft:copy_components",
+              "include": [
+                "storagepot:contents",
+                "storagepot:waxed"
+              ],
+              "source": "block_entity"
+            }
+          ],
+          "name": "storagepot:storage_pot"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ]
+}

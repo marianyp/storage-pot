@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "storagepot:block/storage_pot"
+    }
+  }
+}

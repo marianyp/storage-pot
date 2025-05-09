@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "dev.mariany.storagepot.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BlockItemMixin",
+    "HopperBlockEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "client": [
+    "BakedModelManagerMixin",
+    "ClientPlayerInteractionManagerMixin"
+  ]
+}

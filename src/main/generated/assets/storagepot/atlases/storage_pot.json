@@ -1,0 +1,9 @@
+{
+  "sources": [
+    {
+      "type": "minecraft:directory",
+      "prefix": "entity/storage_pot/",
+      "source": "entity/storage_pot"
+    }
+  ]
+}

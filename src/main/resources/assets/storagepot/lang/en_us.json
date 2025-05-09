@@ -1,0 +1,5 @@
+{
+  "block.storagepot.storage_pot": "Storage Pot",
+  "block.storagepot.contents.tooltip": "%s x%s",
+  "block.storagepot.waxed": "(Waxed)"
+}
