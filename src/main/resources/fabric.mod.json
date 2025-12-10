@@ -29,9 +29,9 @@
     "storagepot.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.16.14",
-    "minecraft": ">=1.21.6",
+    "fabricloader": ">=0.18.1",
+    "minecraft": ">=1.21.9",
     "java": ">=21",
-    "fabric-api": ">=0.128.2"
+    "fabric-api": ">=0.138.3"
   }
 }

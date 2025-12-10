@@ -44,10 +44,13 @@ public class StoragePotClient implements ClientModInitializer {
 
         EntityModelLayerRegistry.registerModelLayer(
                 SPModelLayers.STORAGE_POT_BASE,
-                StoragePotBlockEntityRenderer::getTopBottomNeckTexturedModelData);
+                StoragePotBlockEntityRenderer::getTopBottomNeckTexturedModelData
+        );
+
         EntityModelLayerRegistry.registerModelLayer(
                 SPModelLayers.STORAGE_POT_SIDES,
-                StoragePotBlockEntityRenderer::getSidesTexturedModelData);
+                StoragePotBlockEntityRenderer::getSidesTexturedModelData
+        );
     }
 
     private void registerBlockEntityRenderers() {

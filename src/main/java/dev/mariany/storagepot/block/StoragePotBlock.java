@@ -68,7 +68,7 @@ public class StoragePotBlock extends BlockWithEntity {
     }
 
     public static boolean isExtractionSide(PlayerEntity player, BlockPos pos, Direction side) {
-        BlockState state = player.getWorld().getBlockState(pos);
+        BlockState state = player.getEntityWorld().getBlockState(pos);
 
         if (state.getBlock() instanceof StoragePotBlock) {
             Optional<Direction> optionalFacing = state.getOrEmpty(StoragePotBlock.FACING);
@@ -220,7 +220,7 @@ public class StoragePotBlock extends BlockWithEntity {
     }
 
     @Override
-    protected int getComparatorOutput(BlockState state, World world, BlockPos pos) {
+    protected int getComparatorOutput(BlockState state, World world, BlockPos pos, Direction direction) {
         return ScreenHandler.calculateComparatorOutput(world.getBlockEntity(pos));
     }
 

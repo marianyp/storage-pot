@@ -1,20 +1,27 @@
 package dev.mariany.storagepot.client.render.block.entity;
 
+import dev.mariany.storagepot.block.SPBlocks;
+import dev.mariany.storagepot.block.StoragePotBlock;
 import dev.mariany.storagepot.block.entity.StoragePotBlockEntity;
 import dev.mariany.storagepot.block.entity.StoragePotContents;
 import dev.mariany.storagepot.client.render.SPTexturedRenderLayers;
+import dev.mariany.storagepot.client.render.block.entity.state.StoragePotBlockEntityRenderState;
 import dev.mariany.storagepot.client.render.entity.SPModelLayers;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.DecoratedPotBlockEntity;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.item.ItemModelManager;
 import net.minecraft.client.model.*;
+import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
+import net.minecraft.client.render.command.ModelCommandRenderer;
+import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.entity.model.EntityModelPartNames;
 import net.minecraft.client.render.entity.model.LoadedEntityModels;
-import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.render.state.CameraRenderState;
+import net.minecraft.client.texture.SpriteHolder;
 import net.minecraft.client.util.SpriteIdentifier;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemDisplayContext;
@@ -30,19 +37,17 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Set;
 
-public class StoragePotBlockEntityRenderer implements BlockEntityRenderer<StoragePotBlockEntity> {
+public class StoragePotBlockEntityRenderer
+        implements BlockEntityRenderer<StoragePotBlockEntity, StoragePotBlockEntityRenderState> {
+    private static final Direction DEFAULT_DIRECTION = Direction.SOUTH;
+
     private static final String FRONT = "front";
     private static final String BACK = "back";
     private static final String LEFT = "left";
     private static final String RIGHT = "right";
     private static final String TOP = "top";
-
-    private final ItemRenderer itemRenderer;
-    @Nullable
-    private final TextRenderer textRenderer;
 
     private final ModelPart neck;
     private final ModelPart front;
@@ -52,13 +57,28 @@ public class StoragePotBlockEntityRenderer implements BlockEntityRenderer<Storag
     private final ModelPart top;
     private final ModelPart bottom;
 
+    @Nullable
+    private final TextRenderer textRenderer;
+    private final ItemModelManager itemModelManager;
+    private final SpriteHolder materials;
+
     public StoragePotBlockEntityRenderer(BlockEntityRendererFactory.Context context) {
-        this(context.getItemRenderer(), context.getTextRenderer(), context.getLoadedEntityModels());
+        this(context.itemModelManager(), context.loadedEntityModels(), context.spriteHolder(), context.textRenderer());
     }
 
     public StoragePotBlockEntityRenderer(
-            ItemRenderer itemRenderer, @Nullable TextRenderer textRenderer,
-            LoadedEntityModels models
+            ItemModelManager itemModelManager,
+            LoadedEntityModels models,
+            SpriteHolder materials
+    ) {
+        this(itemModelManager, models, materials, null);
+    }
+
+    public StoragePotBlockEntityRenderer(
+            ItemModelManager itemModelManager,
+            LoadedEntityModels models,
+            SpriteHolder materials,
+            @Nullable TextRenderer textRenderer
     ) {
         ModelPart basePart = models.getModelPart(SPModelLayers.STORAGE_POT_BASE);
         this.neck = basePart.getChild(EntityModelPartNames.NECK);
@@ -71,35 +91,62 @@ public class StoragePotBlockEntityRenderer implements BlockEntityRenderer<Storag
         this.left = sidePart.getChild(LEFT);
         this.right = sidePart.getChild(RIGHT);
 
-        this.itemRenderer = itemRenderer;
+        this.itemModelManager = itemModelManager;
         this.textRenderer = textRenderer;
+        this.materials = materials;
     }
 
     public static TexturedModelData getTopBottomNeckTexturedModelData() {
         ModelData modelData = new ModelData();
-        ModelPartData modelPartData = modelData.getRoot();
+
         Dilation dilation = new Dilation(0.2F);
         Dilation dilation2 = new Dilation(-0.1F);
+
+        ModelPartData modelPartData = modelData.getRoot();
+
         modelPartData.addChild(
                 EntityModelPartNames.NECK,
-                ModelPartBuilder.create().uv(0, 0).cuboid(4.0F, 17.0F, 4.0F, 8.0F, 3.0F, 8.0F, dilation2).uv(0, 5)
-                                .cuboid(5.0F, 20.0F, 5.0F, 6.0F, 1.0F, 6.0F, dilation),
+                ModelPartBuilder.create()
+                                .uv(0, 0)
+                                .cuboid(4F, 17F, 4F, 8F, 3F, 8F, dilation2)
+                                .uv(0, 5)
+                                .cuboid(5F, 20F, 5F, 6F, 1F, 6F, dilation),
                 ModelTransform.of(0.0F, 37.0F, 16.0F, (float) Math.PI, 0.0F, 0.0F)
         );
-        ModelPartBuilder modelPartBuilder = ModelPartBuilder.create().uv(-16, 13)
-                                                            .cuboid(0.0F, 0.0F, 0.0F, 16.0F, 0.0F, 16.0F);
-        modelPartData.addChild("top", modelPartBuilder, ModelTransform.of(0.0F, 16.0F, 0.0F, 0.0F, 0.0F, 0.0F));
+
+        ModelPartBuilder modelPartBuilder = ModelPartBuilder.create()
+                                                            .uv(-16, 13)
+                                                            .cuboid(
+                                                                    0F,
+                                                                    0F,
+                                                                    0F,
+                                                                    16F,
+                                                                    0F,
+                                                                    16F
+                                                            );
+
         modelPartData.addChild(
-                EntityModelPartNames.BOTTOM, modelPartBuilder,
+                "top",
+                modelPartBuilder,
+                ModelTransform.of(0.0F, 16.0F, 0.0F, 0.0F, 0.0F, 0.0F)
+        );
+
+        modelPartData.addChild(
+                EntityModelPartNames.BOTTOM,
+                modelPartBuilder,
                 ModelTransform.of(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F)
         );
+
         return TexturedModelData.of(modelData, 32, 32);
     }
 
     public static TexturedModelData getSidesTexturedModelData() {
         ModelData modelData = new ModelData();
+
         ModelPartData modelPartData = modelData.getRoot();
-        ModelPartBuilder modelPartBuilder = ModelPartBuilder.create().uv(0, 0)
+
+        ModelPartBuilder modelPartBuilder = ModelPartBuilder.create()
+                                                            .uv(0, 0)
                                                             .cuboid(
                                                                     0.0F,
                                                                     0.0F,
@@ -109,115 +156,307 @@ public class StoragePotBlockEntityRenderer implements BlockEntityRenderer<Storag
                                                                     0.0F,
                                                                     EnumSet.of(Direction.NORTH)
                                                             );
-        modelPartData.addChild("back", modelPartBuilder, ModelTransform.of(16, 16.0F, 0F, 0.0F, 0.0F, (float) Math.PI));
+
         modelPartData.addChild(
-                "left", modelPartBuilder,
-                ModelTransform.of(0F, 16.0F, 0F, 0.0F, (float) (-Math.PI / 2), (float) Math.PI)
+                "back",
+                modelPartBuilder,
+                ModelTransform.of(16, 16F, 0F, 0F, 0F, (float) Math.PI)
         );
+
+        modelPartData.addChild(
+                "left",
+                modelPartBuilder,
+                ModelTransform.of(0F, 16F, 0F, 0F, (float) (-Math.PI / 2), (float) Math.PI)
+        );
+
         modelPartData.addChild(
                 "right", modelPartBuilder,
-                ModelTransform.of(16, 16.0F, 16, 0.0F, (float) (Math.PI / 2), (float) Math.PI)
+                ModelTransform.of(16, 16F, 16, 0F, (float) (Math.PI / 2), (float) Math.PI)
         );
+
         modelPartData.addChild(
                 "front", modelPartBuilder,
-                ModelTransform.of(0F, 16.0F, 16, (float) Math.PI, 0.0F, 0.0F)
+                ModelTransform.of(0F, 16F, 16, (float) Math.PI, 0F, 0F)
         );
+
         return TexturedModelData.of(modelData, 16, 16);
     }
 
-    public void render(
-            StoragePotBlockEntity storagePotBlockEntity, float f, MatrixStack matrixStack,
-            VertexConsumerProvider vertexConsumerProvider, int light, int overlay, Vec3d vec3d
-    ) {
-        matrixStack.push();
-        Direction direction = storagePotBlockEntity.getHorizontalFacing();
-        matrixStack.translate(0.5, 0.0, 0.5);
-        matrixStack.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(180.0F - direction.getPositiveHorizontalDegrees()));
-        matrixStack.translate(-0.5, 0.0, -0.5);
-        DecoratedPotBlockEntity.WobbleType wobbleType = storagePotBlockEntity.lastWobbleType;
-
-        World world = storagePotBlockEntity.getWorld();
-
-        if (wobbleType != null && world != null) {
-            float g = ((float) (world.getTime() - storagePotBlockEntity.lastWobbleTime) + f) / wobbleType.lengthInTicks;
-            if (g >= 0.0F && g <= 1.0F) {
-                if (wobbleType == DecoratedPotBlockEntity.WobbleType.POSITIVE) {
-                    float h = 0.015625F;
-                    float k = g * (float) (Math.PI * 2);
-                    float l = -1.5F * (MathHelper.cos(k) + 0.5F) * MathHelper.sin(k / 2.0F);
-                    matrixStack.multiply(RotationAxis.POSITIVE_X.rotation(l * h), 0.5F, 0.0F, 0.5F);
-                    float m = MathHelper.sin(k);
-                    matrixStack.multiply(RotationAxis.POSITIVE_Z.rotation(m * h), 0.5F, 0.0F, 0.5F);
-                } else {
-                    float h = MathHelper.sin(-g * 3.0F * (float) Math.PI) * 0.125F;
-                    float k = 1.0F - g;
-                    matrixStack.multiply(RotationAxis.POSITIVE_Y.rotation(h * k), 0.5F, 0.0F, 0.5F);
-                }
-            }
-        }
-
-        StoragePotContents contents = storagePotBlockEntity.getContents();
-        ItemStack waxedItem = storagePotBlockEntity.getWaxedItem();
-
-        this.render(matrixStack, vertexConsumerProvider, light, overlay, contents, waxedItem);
-        this.renderText(matrixStack, vertexConsumerProvider, light, storagePotBlockEntity);
-
-        matrixStack.pop();
+    public void collectVertices(Set<Vector3f> vertices) {
+        MatrixStack matrixStack = new MatrixStack();
+        this.neck.collectVertices(matrixStack, vertices);
+        this.top.collectVertices(matrixStack, vertices);
+        this.bottom.collectVertices(matrixStack, vertices);
     }
 
-    public void render(
-            MatrixStack matrixStack, VertexConsumerProvider vertexConsumers, int light, int overlay,
-            StoragePotContents contents, ItemStack waxedItem
+    @Override
+    public StoragePotBlockEntityRenderState createRenderState() {
+        return new StoragePotBlockEntityRenderState();
+    }
+
+    @Override
+    public void updateRenderState(
+            StoragePotBlockEntity storagePotBlockEntity,
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            float tickProgress,
+            Vec3d cameraPos,
+            @Nullable ModelCommandRenderer.CrumblingOverlayCommand crumblingOverlay
     ) {
-        if (!waxedItem.isEmpty()) {
-            contents = StoragePotContents.from(List.of(waxedItem));
-        }
-
-        VertexConsumer vertexConsumer = SPTexturedRenderLayers.STORAGE_POT_BASE.getVertexConsumer(
-                vertexConsumers, RenderLayer::getEntitySolid);
-        this.neck.render(matrixStack, vertexConsumer, light, overlay);
-        this.top.render(matrixStack, vertexConsumer, light, overlay);
-        this.bottom.render(matrixStack, vertexConsumer, light, overlay);
-
-        this.renderSide(this.back, matrixStack, vertexConsumers, light, overlay);
-        this.renderSide(this.left, matrixStack, vertexConsumers, light, overlay);
-        this.renderSide(this.right, matrixStack, vertexConsumers, light, overlay);
-        this.renderSide(
-                this.front, matrixStack, vertexConsumers, light, overlay,
-                SPTexturedRenderLayers.STORAGE_POT_FRONT
+        BlockEntityRenderer.super.updateRenderState(
+                storagePotBlockEntity,
+                storagePotBlockEntityRenderState,
+                tickProgress,
+                cameraPos,
+                crumblingOverlay
         );
 
-        this.renderItem(matrixStack, vertexConsumers, overlay, light, contents);
+        this.updateRenderState(
+                storagePotBlockEntityRenderState,
+                storagePotBlockEntity.getContents(),
+                storagePotBlockEntity.getWaxedItem(),
+                storagePotBlockEntity.isFull(),
+                this.getFacing(storagePotBlockEntity),
+                storagePotBlockEntity.getWorld()
+        );
+
+        this.updateWobbleState(storagePotBlockEntityRenderState, storagePotBlockEntity, tickProgress);
+    }
+
+    private Direction getFacing(StoragePotBlockEntity storagePotBlockEntity) {
+        BlockState blockState;
+
+        if (storagePotBlockEntity.getWorld() == null) {
+            blockState = SPBlocks.STORAGE_POT.getDefaultState().with(StoragePotBlock.FACING, DEFAULT_DIRECTION);
+        } else {
+            blockState = storagePotBlockEntity.getCachedState();
+        }
+
+        return blockState.get(StoragePotBlock.FACING, DEFAULT_DIRECTION);
+    }
+
+    private void updateWobbleState(
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            StoragePotBlockEntity storagePotBlockEntity,
+            float tickProgress
+    ) {
+        DecoratedPotBlockEntity.WobbleType wobbleType = storagePotBlockEntity.lastWobbleType;
+
+        if (wobbleType != null && storagePotBlockEntity.getWorld() != null) {
+            long worldTime = storagePotBlockEntity.getWorld().getTime();
+            long elapsedTicks = worldTime - storagePotBlockEntity.lastWobbleTime;
+
+            float totalProgress = elapsedTicks + tickProgress;
+            float wobbleDuration = wobbleType.lengthInTicks;
+
+            storagePotBlockEntityRenderState.wobbleAnimationProgress = totalProgress / wobbleDuration;
+        } else {
+            storagePotBlockEntityRenderState.wobbleAnimationProgress = 0;
+        }
+    }
+
+    public void updateRenderState(
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            StoragePotContents contents,
+            ItemStack waxedItem
+    ) {
+        updateRenderState(
+                storagePotBlockEntityRenderState,
+                contents,
+                waxedItem,
+                false,
+                DEFAULT_DIRECTION,
+                null
+        );
+    }
+
+    public void updateRenderState(
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            StoragePotContents contents,
+            ItemStack waxedItem,
+            boolean full,
+            Direction facing,
+            @Nullable World world
+    ) {
+        storagePotBlockEntityRenderState.count = contents.count();
+        storagePotBlockEntityRenderState.full = full;
+        storagePotBlockEntityRenderState.yaw = facing.getPositiveHorizontalDegrees();
+
+        this.updateStackState(storagePotBlockEntityRenderState, contents, waxedItem, world);
+    }
+
+    private void updateStackState(
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            StoragePotContents contents,
+            ItemStack waxedItem,
+            @Nullable World world
+    ) {
+        ItemStack contentStack;
+
+        if (waxedItem.isEmpty()) {
+            contentStack = contents.toStack(1);
+        } else {
+            contentStack = waxedItem;
+        }
+
+        this.itemModelManager.clearAndUpdate(
+                storagePotBlockEntityRenderState.itemRenderState,
+                contentStack,
+                ItemDisplayContext.FIXED,
+                world,
+                null,
+                0
+        );
+    }
+
+    @Override
+    public void render(
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            MatrixStack matrices,
+            OrderedRenderCommandQueue queue,
+            CameraRenderState cameraState
+    ) {
+        matrices.push();
+        matrices.translate(0.5, 0.0, 0.5);
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180 - storagePotBlockEntityRenderState.yaw));
+        matrices.translate(-0.5, 0.0, -0.5);
+
+        this.wobble(storagePotBlockEntityRenderState, matrices);
+
+        this.render(
+                storagePotBlockEntityRenderState,
+                matrices,
+                queue,
+                storagePotBlockEntityRenderState.lightmapCoordinates,
+                OverlayTexture.DEFAULT_UV,
+                0
+        );
+
+        this.renderText(storagePotBlockEntityRenderState, matrices, queue);
+
+        matrices.pop();
+    }
+
+    private void wobble(
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            MatrixStack matrices
+    ) {
+        float progress = storagePotBlockEntityRenderState.wobbleAnimationProgress;
+
+        if (progress >= 0 && progress <= 1) {
+            if (storagePotBlockEntityRenderState.wobbleType == DecoratedPotBlockEntity.WobbleType.POSITIVE) {
+                float scale = 0.015625F;
+                float angle = progress * (float) (Math.PI * 2);
+                float tiltX = -1.5F * (MathHelper.cos(angle) + 0.5F) * MathHelper.sin(angle / 2);
+
+                matrices.multiply(
+                        RotationAxis.POSITIVE_X.rotation(tiltX * scale),
+                        0.5F,
+                        0,
+                        0.5F
+                );
+
+                float tiltZ = MathHelper.sin(angle);
+
+                matrices.multiply(
+                        RotationAxis.POSITIVE_Z.rotation(tiltZ * scale),
+                        0.5F,
+                        0,
+                        0.5F
+                );
+            } else {
+                float yaw = MathHelper.sin(-progress * 3F * (float) Math.PI) * 0.125F;
+                float dampen = 1 - progress;
+
+                matrices.multiply(
+                        RotationAxis.POSITIVE_Y.rotation(yaw * dampen),
+                        0.5F,
+                        0,
+                        0.5F
+                );
+            }
+        }
+    }
+
+    public void render(
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            MatrixStack matrices,
+            OrderedRenderCommandQueue queue,
+            int light,
+            int overlay,
+            int outlineColor
+    ) {
+        this.renderBase(this.neck, matrices, queue, light, overlay, outlineColor);
+        this.renderBase(this.top, matrices, queue, light, overlay, outlineColor);
+        this.renderBase(this.bottom, matrices, queue, light, overlay, outlineColor);
+
+        this.renderSide(this.back, matrices, queue, light, overlay, outlineColor);
+        this.renderSide(this.left, matrices, queue, light, overlay, outlineColor);
+        this.renderSide(this.right, matrices, queue, light, overlay, outlineColor);
+
+        this.renderPart(
+                SPTexturedRenderLayers.STORAGE_POT_FRONT,
+                this.front,
+                matrices,
+                queue,
+                light,
+                overlay,
+                outlineColor
+        );
+
+        this.renderItem(storagePotBlockEntityRenderState, light, matrices, queue);
+    }
+
+    private void renderBase(
+            ModelPart part,
+            MatrixStack matrices,
+            OrderedRenderCommandQueue queue,
+            int light,
+            int overlay,
+            int outlineColor
+    ) {
+        renderPart(SPTexturedRenderLayers.STORAGE_POT_BASE, part, matrices, queue, light, overlay, outlineColor);
     }
 
     private void renderSide(
             ModelPart part,
             MatrixStack matrices,
-            VertexConsumerProvider vertexConsumers,
+            OrderedRenderCommandQueue queue,
             int light,
-            int overlay
+            int overlay,
+            int outlineColor
     ) {
-        renderSide(part, matrices, vertexConsumers, light, overlay, SPTexturedRenderLayers.STORAGE_POT_SIDE);
+        renderPart(SPTexturedRenderLayers.STORAGE_POT_SIDE, part, matrices, queue, light, overlay, outlineColor);
     }
 
-    private void renderSide(
+    private void renderPart(
+            SpriteIdentifier textureId,
             ModelPart part,
             MatrixStack matrices,
-            VertexConsumerProvider vertexConsumers,
+            OrderedRenderCommandQueue queue,
             int light,
-            int overlay
-            , SpriteIdentifier textureId
+            int overlay,
+            int outlineColor
     ) {
-        part.render(
-                matrices, textureId.getVertexConsumer(vertexConsumers, RenderLayer::getEntitySolid), light,
-                overlay
+        queue.submitModelPart(
+                part,
+                matrices,
+                textureId.getRenderLayer(RenderLayer::getEntitySolid),
+                light,
+                overlay,
+                this.materials.getSprite(textureId),
+                false,
+                false,
+                -1,
+                null,
+                outlineColor
         );
     }
 
     private void renderItem(
-            MatrixStack matrices, VertexConsumerProvider vertexConsumers, int overlay, int light,
-            StoragePotContents contents
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            int light,
+            MatrixStack matrices,
+            OrderedRenderCommandQueue queue
     ) {
         float scale = 0.35F;
 
@@ -226,21 +465,25 @@ public class StoragePotBlockEntityRenderer implements BlockEntityRenderer<Storag
         matrices.scale(scale, scale, scale);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180));
 
-        this.itemRenderer.renderItem(
-                contents.toStack(1), ItemDisplayContext.FIXED, light, overlay, matrices,
-                vertexConsumers, null, 0
+        storagePotBlockEntityRenderState.itemRenderState.render(
+                matrices,
+                queue,
+                light,
+                OverlayTexture.DEFAULT_UV,
+                0
         );
 
         matrices.pop();
     }
 
     private void renderText(
-            MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light,
-            StoragePotBlockEntity storagePotBlockEntity
+            StoragePotBlockEntityRenderState storagePotBlockEntityRenderState,
+            MatrixStack matrices,
+            OrderedRenderCommandQueue queue
     ) {
         if (this.textRenderer != null) {
-            int count = storagePotBlockEntity.getContents().count();
-            int color = storagePotBlockEntity.isFull() ? Colors.RED : Colors.BLACK;
+            int count = storagePotBlockEntityRenderState.count;
+            int color = storagePotBlockEntityRenderState.full ? Colors.RED : Colors.BLACK;
             String text = Integer.toString(count);
 
             if (count > 0) {
@@ -253,21 +496,21 @@ public class StoragePotBlockEntityRenderer implements BlockEntityRenderer<Storag
                 matrices.translate(0.5F, 1F - scale * ((textHeight - 4) / 2), 1F);
                 matrices.scale(scale, -scale, scale);
 
-                this.textRenderer.draw(
-                        Text.of(text), -halfWidth, textHeight, color, false,
-                        matrices.peek().getPositionMatrix(), vertexConsumers, TextRenderer.TextLayerType.POLYGON_OFFSET,
-                        0, light
+                queue.submitText(
+                        matrices,
+                        -halfWidth,
+                        textHeight,
+                        Text.of(text).asOrderedText(),
+                        false,
+                        TextRenderer.TextLayerType.POLYGON_OFFSET,
+                        storagePotBlockEntityRenderState.lightmapCoordinates,
+                        color,
+                        0,
+                        0
                 );
 
                 matrices.pop();
             }
         }
-    }
-
-    public void collectVertices(Set<Vector3f> vertices) {
-        MatrixStack matrixStack = new MatrixStack();
-        this.neck.collectVertices(matrixStack, vertices);
-        this.top.collectVertices(matrixStack, vertices);
-        this.bottom.collectVertices(matrixStack, vertices);
     }
 }

@@ -24,7 +24,7 @@ public abstract class ClientPlayerInteractionManagerMixin {
         PlayerEntity player = this.client.player;
 
         if (player != null) {
-            if (player.getWorld().getBlockEntity(pos) instanceof StoragePotBlockEntity storagePotBlockEntity) {
+            if (player.getEntityWorld().getBlockEntity(pos) instanceof StoragePotBlockEntity storagePotBlockEntity) {
                 if (StoragePotBlock.isExtractionSide(player)) {
                     if (!storagePotBlockEntity.isEmpty() || !player.isSneaking()) {
                         cir.setReturnValue(false);

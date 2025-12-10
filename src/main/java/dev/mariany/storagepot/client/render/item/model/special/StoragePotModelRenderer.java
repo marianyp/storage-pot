@@ -3,17 +3,18 @@ package dev.mariany.storagepot.client.render.item.model.special;
 import com.mojang.serialization.MapCodec;
 import dev.mariany.storagepot.block.entity.StoragePotContents;
 import dev.mariany.storagepot.client.render.block.entity.StoragePotBlockEntityRenderer;
+import dev.mariany.storagepot.client.render.block.entity.state.StoragePotBlockEntityRenderState;
 import dev.mariany.storagepot.item.component.SPComponents;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.entity.model.LoadedEntityModels;
+import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.item.model.special.SpecialModelRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemDisplayContext;
 import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.Objects;
@@ -34,20 +35,39 @@ public class StoragePotModelRenderer
         );
     }
 
+    @Override
     public void render(
-            StoragePotModelRenderer.StoragePotModelRendererData data,
-            ItemDisplayContext itemDisplayContext,
-            MatrixStack matrixStack,
-            VertexConsumerProvider vertexConsumerProvider,
+            @Nullable StoragePotModelRenderer.StoragePotModelRendererData data,
+            ItemDisplayContext displayContext,
+            MatrixStack matrices,
+            OrderedRenderCommandQueue queue,
             int light,
             int overlay,
-            boolean bl
+            boolean glint,
+            int outlineColor
     ) {
         data = Objects.requireNonNullElse(
                 data,
                 new StoragePotModelRenderer.StoragePotModelRendererData(StoragePotContents.EMPTY, ItemStack.EMPTY)
         );
-        this.blockEntityRenderer.render(matrixStack, vertexConsumerProvider, light, overlay, data.contents, data.waxedItem);
+
+        StoragePotBlockEntityRenderState storagePotBlockEntityRenderState =
+                this.blockEntityRenderer.createRenderState();
+
+        this.blockEntityRenderer.updateRenderState(
+                storagePotBlockEntityRenderState,
+                data.contents,
+                data.waxedItem
+        );
+
+        this.blockEntityRenderer.render(
+                storagePotBlockEntityRenderState,
+                matrices,
+                queue,
+                light,
+                overlay,
+                outlineColor
+        );
     }
 
     @Override
@@ -66,10 +86,14 @@ public class StoragePotModelRenderer
         }
 
         @Override
-        public SpecialModelRenderer<?> bake(LoadedEntityModels entityModels) {
+        public SpecialModelRenderer<?> bake(BakeContext context) {
             MinecraftClient client = MinecraftClient.getInstance();
             return new StoragePotModelRenderer(
-                    new StoragePotBlockEntityRenderer(client.getItemRenderer(), null, entityModels)
+                    new StoragePotBlockEntityRenderer(
+                            client.getItemModelManager(),
+                            context.entityModelSet(),
+                            context.spriteHolder()
+                    )
             );
         }
     }

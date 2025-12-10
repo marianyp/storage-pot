@@ -19,11 +19,9 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.state.property.Properties;
 import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -141,7 +139,7 @@ public class StoragePotBlockEntity extends BlockEntity implements Inventory {
     }
 
     public boolean extract(PlayerEntity player) {
-        if (player.getWorld().isClient()) {
+        if (player.getEntityWorld().isClient()) {
             return false;
         }
 
@@ -179,7 +177,7 @@ public class StoragePotBlockEntity extends BlockEntity implements Inventory {
                     itemEntity.setDespawnImmediately();
                 }
 
-                player.getWorld()
+                player.getEntityWorld()
                       .playSound(
                               null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENTITY_ITEM_PICKUP,
                               SoundCategory.PLAYERS, 0.2F, ((player.getRandom().nextFloat() - player.getRandom()
@@ -242,10 +240,6 @@ public class StoragePotBlockEntity extends BlockEntity implements Inventory {
         }
 
         return (this.world.getTime() - this.lastExtractTime) < EXTRACT_COOLDOWN_TICKS;
-    }
-
-    public Direction getHorizontalFacing() {
-        return this.getCachedState().get(Properties.HORIZONTAL_FACING);
     }
 
     @Override

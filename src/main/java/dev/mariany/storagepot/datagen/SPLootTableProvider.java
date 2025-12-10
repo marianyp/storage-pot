@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.datagen.v1.provider.FabricBlockLootTableProvider;
 import net.minecraft.block.Block;
 import net.minecraft.loot.LootPool;
 import net.minecraft.loot.LootTable;
+import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.loot.entry.ItemEntry;
 import net.minecraft.loot.function.CopyComponentsLootFunction;
 import net.minecraft.loot.provider.number.ConstantLootNumberProvider;
@@ -28,9 +29,21 @@ public class SPLootTableProvider extends FabricBlockLootTableProvider {
     }
 
     private LootTable.Builder storagePotDrops(Block pot) {
-        return LootTable.builder().pool(this.addSurvivesExplosionCondition(pot,
-                LootPool.builder().rolls(ConstantLootNumberProvider.create(1)).with(ItemEntry.builder(pot)
-                        .apply(CopyComponentsLootFunction.builder(CopyComponentsLootFunction.Source.BLOCK_ENTITY)
-                                                         .include(SPComponents.CONTENTS).include(SPComponents.WAXED)))));
+        return LootTable.builder().pool(
+                this.addSurvivesExplosionCondition(
+                        pot,
+                        LootPool.builder()
+                                .rolls(ConstantLootNumberProvider.create(1))
+                                .with(
+                                        ItemEntry.builder(pot).apply(
+                                                CopyComponentsLootFunction.blockEntity(
+                                                                                  LootContextParameters.BLOCK_ENTITY
+                                                                          )
+                                                                          .include(SPComponents.CONTENTS)
+                                                                          .include(SPComponents.WAXED)
+                                        )
+                                )
+                )
+        );
     }
 }

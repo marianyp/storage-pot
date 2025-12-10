@@ -11,13 +11,18 @@ import net.minecraft.world.World;
 import net.minecraft.world.event.GameEvent;
 
 public class AttackBlockHandler {
-    public static ActionResult onAttack(PlayerEntity player, World world, Hand hand, BlockPos pos,
-                                        Direction direction) {
+    public static ActionResult onAttack(
+            PlayerEntity player,
+            World world,
+            Hand hand,
+            BlockPos pos,
+            Direction direction
+    ) {
         return handleStoragePotExtraction(player, pos, direction);
     }
 
     public static ActionResult handleStoragePotExtraction(PlayerEntity player, BlockPos pos, Direction direction) {
-        World world = player.getWorld();
+        World world = player.getEntityWorld();
 
         if (!StoragePotBlock.isExtractionSide(player, pos, direction)) {
             return ActionResult.PASS;
