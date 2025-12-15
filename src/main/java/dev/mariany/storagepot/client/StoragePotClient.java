@@ -7,7 +7,9 @@ import dev.mariany.storagepot.block.entity.SPBlockEntities;
 import dev.mariany.storagepot.client.render.block.entity.StoragePotBlockEntityRenderer;
 import dev.mariany.storagepot.client.render.entity.SPModelLayers;
 import dev.mariany.storagepot.client.render.item.model.special.StoragePotModelRenderer;
+import dev.mariany.storagepot.event.item.ItemTooltipHandler;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.SpecialBlockRendererRegistry;
 import net.minecraft.block.Block;
@@ -22,11 +24,18 @@ public class StoragePotClient implements ClientModInitializer {
         registerSpecialBlockRenderers();
         registerEntityModelLayers();
         registerBlockEntityRenderers();
+        registerTooltipHandlers();
     }
 
-    private <T extends SpecialModelRenderer.Unbaked> void registerSpecialBlockRenderer(Identifier id, Block block,
-                                                                                       T unbakedRenderer,
-                                                                                       MapCodec<T> codec) {
+    private void registerTooltipHandlers() {
+        ItemTooltipCallback.EVENT.register(ItemTooltipHandler::getTooltip);
+    }
+
+    private <T extends SpecialModelRenderer.Unbaked> void registerSpecialBlockRenderer(
+            Identifier id, Block block,
+            T unbakedRenderer,
+            MapCodec<T> codec
+    ) {
         SpecialBlockRendererRegistry.register(block, unbakedRenderer);
         SpecialModelTypes.ID_MAPPER.put(id, codec);
     }
@@ -35,8 +44,11 @@ public class StoragePotClient implements ClientModInitializer {
         StoragePot.LOGGER.info("Registering special block renderers for mod " + StoragePot.MOD_ID);
 
         registerSpecialBlockRenderer(
-                StoragePot.id("storage_pot"), SPBlocks.STORAGE_POT,
-                new StoragePotModelRenderer.Unbaked(), StoragePotModelRenderer.Unbaked.CODEC);
+                StoragePot.id("storage_pot"),
+                SPBlocks.STORAGE_POT,
+                new StoragePotModelRenderer.Unbaked(),
+                StoragePotModelRenderer.Unbaked.CODEC
+        );
     }
 
     private void registerEntityModelLayers() {
