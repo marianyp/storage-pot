@@ -21,21 +21,28 @@ public record StoragePotContents(RegistryEntry<Item> item, int count, ComponentC
     public static final Codec<StoragePotContents> CODEC = Codec.lazyInitialized(StoragePotContents::createCodec);
     public static final PacketCodec<RegistryByteBuf, StoragePotContents> PACKET_CODEC = createPacketCodec();
 
-    public static StoragePotContents EMPTY = new StoragePotContents(Items.AIR.getDefaultStack().getRegistryEntry(), 0,
-            ComponentChanges.EMPTY);
+    public static StoragePotContents EMPTY = new StoragePotContents(
+            Items.AIR.getDefaultStack().getRegistryEntry(),
+            0,
+            ComponentChanges.EMPTY
+    );
 
     private static Codec<StoragePotContents> createCodec() {
         return RecordCodecBuilder.create(instance -> instance.group(
                 Registries.ITEM.getEntryCodec().fieldOf("id").forGetter(StoragePotContents::item),
                 Codecs.NON_NEGATIVE_INT.fieldOf("count").orElse(1).forGetter(StoragePotContents::count),
                 ComponentChanges.CODEC.optionalFieldOf("components", ComponentChanges.EMPTY)
-                        .forGetter(StoragePotContents::components)).apply(instance, StoragePotContents::new));
+                                      .forGetter(StoragePotContents::components)
+        ).apply(instance, StoragePotContents::new));
     }
 
     private static PacketCodec<RegistryByteBuf, StoragePotContents> createPacketCodec() {
-        return PacketCodec.tuple(Item.ENTRY_PACKET_CODEC, StoragePotContents::item, PacketCodecs.VAR_INT,
-                StoragePotContents::count, ComponentChanges.PACKET_CODEC, StoragePotContents::components,
-                StoragePotContents::new);
+        return PacketCodec.tuple(
+                Item.ENTRY_PACKET_CODEC, StoragePotContents::item,
+                PacketCodecs.VAR_INT, StoragePotContents::count,
+                ComponentChanges.PACKET_CODEC, StoragePotContents::components,
+                StoragePotContents::new
+        );
     }
 
     public static StoragePotContents from(List<ItemStack> stacks) {

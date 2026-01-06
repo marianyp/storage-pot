@@ -12,9 +12,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(HopperBlockEntity.class)
 public class HopperBlockEntityMixin {
-    @Inject(method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;ILnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;", at = @At(value = "HEAD"), cancellable = true)
-    private static void injectTransfer(Inventory from, Inventory to, ItemStack stack, int slot, Direction side,
-                                       CallbackInfoReturnable<ItemStack> cir) {
+    @Inject(
+            method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;ILnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;",
+            at = @At(value = "HEAD"),
+            cancellable = true
+    )
+    private static void injectTransfer(
+            Inventory from, Inventory to, ItemStack stack, int slot, Direction side,
+            CallbackInfoReturnable<ItemStack> cir
+    ) {
         if (to instanceof StoragePotBlockEntity storagePotBlockEntity) {
             storagePotBlockEntity.add(null, stack, true);
             cir.setReturnValue(stack);

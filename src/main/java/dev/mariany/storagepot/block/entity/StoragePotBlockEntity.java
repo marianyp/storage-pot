@@ -128,6 +128,7 @@ public class StoragePotBlockEntity extends BlockEntity implements Inventory {
                     stack.getRegistryEntry(), amount + contentsAmount,
                     stack.getComponentChanges()
             );
+
             stack.splitUnlessCreative(amount, player);
 
             this.updateListeners();
@@ -338,7 +339,9 @@ public class StoragePotBlockEntity extends BlockEntity implements Inventory {
 
     @Override
     public void setStack(int slot, ItemStack stack) {
-        if (ItemStack.areItemsAndComponentsEqual(stack, this.contents.getBaseStack())) {
+        ItemStack baseStack = this.contents.getBaseStack();
+
+        if (baseStack.isEmpty() || ItemStack.areItemsAndComponentsEqual(stack, baseStack)) {
             if (slot == 0) {
                 List<ItemStack> items = this.contents.toStacks();
 
